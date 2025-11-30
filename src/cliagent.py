@@ -122,37 +122,25 @@ class CLICodingAgent:
             ) from exc
 
 
-# # ---------------- Example Usage ----------------
-# if __name__ == "__main__":
-#     # Default: codex (no model)
-#     agent1 = CLICodingAgent(
-#             prompt="""
-#             1. Activate the .venv python virtual environment and report the pyvista and trimesh versions.
-#             2. Write a Python code that reverses a string and save it in the current directory as codex.py. 
-#             3. Run the python code and report the results
-#             """
-#         )
-#     agent1.forward()
+# ---------------- Example Usage ----------------
+if __name__ == "__main__":
+    import argparse
 
-#     # Gemini: inject model flag
-#     agent2 = CLICodingAgent(
-#         provider="gemini",
-#         model_name="gemini-2.5-flash",
-#         prompt="""
-#         1. Activate the .venv python virtual environment and report the pyvista and trimesh versions.
-#         2. Write a Python code that reverses a string and save it in the current directory as gemini.py. 
-#         3. Run the python code and report the results
-#         """
-#     )
-#     agent2.forward()
+    parser = argparse.ArgumentParser(description="CLI Coding Agent")
+    parser.add_argument("prompt", help="The prompt to send to the agent")
+    parser.add_argument("--provider", default="codex", help="The provider to use (default: codex)")
+    parser.add_argument("--cwd", default=None, help="The working directory (optional)")
+    
+    args = parser.parse_args()
 
-#     # Qwen: stdin mode
-#     agent3 = CLICodingAgent(
-#         provider="qwen",
-#         prompt="""
-#         1. Activate the .venv python virtual environment and report the pyvista and trimesh versions.
-#         2. Write a Python code that reverses a string and save it in the current directory as qwen.py. 
-#         3. Run the python code and report the results
-#         """
-#     )
-#     agent3.forward()
+    cwd_path = Path(args.cwd) if args.cwd else None
+
+    agent = CLICodingAgent(
+        prompt=args.prompt,
+        provider=args.provider,
+        model_name=args.model,
+        cwd=cwd_path
+    )
+    
+    exit_code = agent.forward()
+    sys.exit(exit_code)
