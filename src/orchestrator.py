@@ -80,7 +80,11 @@ class Orchestrator:
             # We can add more if needed, but based on request these seem relevant
             formatted_prompt = template_content.format(
                 output_dir=str(run_dir),
-                max_iters=self.max_iters
+                max_iters=self.max_iters,
+                reference_image_path=self.image_path,
+                question=self.question,
+                generated_ground_truth=self.generated_ground_truth,
+                verify_script_path=str(self.project_root / "src/verify.py")
             )
             
             with open(prompt_path, "w") as f:
@@ -91,9 +95,6 @@ class Orchestrator:
             # If formatting fails (e.g. missing keys), we might want to just write the raw content 
             # or handle it gracefully. For now, let's try to write raw if format fails 
             # or just proceed. 
-            # But actually, if the user wants us to format it, we should probably ensure it works.
-            # Since the file is currently empty, this might be a no-op or fail if we try to format empty string with keys?
-            # Empty string .format() is fine.
             pass
 
         # Run cliagent.py

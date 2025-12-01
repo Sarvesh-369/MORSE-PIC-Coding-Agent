@@ -7,8 +7,8 @@ import sys
 class VerificationTask(dspy.Signature):
     """Verify if the generated image matches the reference image."""
     question: str = dspy.InputField(desc="Question about the image")
-    reference_image: dspy.Image = dspy.InputField(desc="Path to the reference image")
-    generated_image: dspy.Image = dspy.InputField(desc="Path to the generated image")
+    reference_image: dspy.Image = dspy.InputField(desc="Reference image")
+    generated_image: dspy.Image = dspy.InputField(desc="Generated image")
     generated_ground_truth: str = dspy.InputField(desc="The ground truth for the generated image for the given question")
     verification_result: str = dspy.OutputField(desc="The verification result")
 
