@@ -3,7 +3,7 @@
 # Example usage:
 # ./main.sh --pid 100 --provider qwen --max-iters 5 --stop-on-pass --data custom_data.parquet --images /path/to/images
 
-
+# Default values for parameters.
 PID="37" # A process ID or identifier.
 PROVIDER="qwen" # The name of a service provider (e.g., an AI model provider).
 MAX_ITERS="2" # Maximum number of iterations for some process.
