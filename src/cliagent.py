@@ -127,11 +127,18 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="CLI Coding Agent")
-    parser.add_argument("prompt", help="The prompt to send to the agent")
+    parser.add_argument("--prompt", help="The prompt md file to send to the agent")
     parser.add_argument("--provider", default="codex", help="The provider to use (default: codex)")
     parser.add_argument("--cwd", default=None, help="The working directory (optional)")
     
     args = parser.parse_args()
+
+    try:
+        with open(args.prompt, "r") as f:
+            prompt = f.read().strip()
+    except FileNotFoundError:
+        print(f"Error: Prompt file '{args.prompt}' not found.", file=sys.stderr)
+        sys.exit(1)
 
     cwd_path = Path(args.cwd) if args.cwd else None
 
