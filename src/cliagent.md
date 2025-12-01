@@ -5,36 +5,31 @@ You have a maximum of {max_iters} iterations.
 You have a file named `generate.py` in the current directory.
 This file contains code to generate an image based on a problem description.
 
-**Your Goal:**
-1. Analyze `generate.py` to understand the global difficulty parameters defined at the top of the script.
-2. Run `generate.py` to generate the image.
-3. Verify the generated image using the provided verification script.
-4. If verification fails, modify `generate.py` to fix the issues and repeat.
-
-**Verification Script:**
-Run the verification script using the following command:
-```bash
-python {verify_script_path} "{reference_image_path}" "{output_dir}/image.png" "{question}" "{generated_ground_truth}"
-```
-*Note: Ensure `generate.py` saves the image to `{output_dir}/image.png` (or check where it saves it).*
-
-**Verification Output:**
-The verification script outputs a JSON string with the following structure:
-```json
-{{
-    "status": "PASS" | "FAIL",
-    "differences": ["..."],
-    "suggestions": ["..."]
-}}
-```
-
 **Instructions:**
-1. **Execute** `python generate.py`.
-2. **Verify** by running the verification command above.
-3. **Analyze** the JSON output.
-   - If `"status": "PASS"`, you are done!
-   - If `"status": "FAIL"`, read the `differences` and `suggestions`.
-4. **Modify** `generate.py` to address the feedback.
-5. **Repeat** steps 1-4 until the verification passes or you run out of iterations.
 
-Good luck!
+Step 1. Activate the virtual environment.
+   - Run: `source .venv/bin/activate` (or appropriate activation command).
+
+Step 2. Analyze `generate.py`.
+   - Read the content of `generate.py` to understand the global difficulty parameters and the CLI arguments it accepts.
+   - **CRITICAL**: You MUST identify the CLI arguments required to run the script (e.g., `--param1 value1`).
+
+Step 3. Run `generate.py` with appropriate arguments.
+   - Execute the script using the arguments you identified in Step 2.
+   - Example: `python generate.py --arg1 value1 --arg2 value2`
+
+Step 4. Iterate using the verification script until it passes or you reach the maximum iterations.
+   - **Loop**:
+     1. Run the verification command:
+        ```bash
+        python {verify_script_path} "{reference_image_path}" "{output_dir}/image.png" "{question}" "{generated_ground_truth}"
+        ```
+     2. Analyze the JSON output.
+     3. If `"status": "PASS"`, break the loop and proceed to Step 5.
+     4. If `"status": "FAIL"`, read the `differences` and `suggestions`.
+     5. Modify `generate.py` to fix the reported issues.
+     6. Run `generate.py` again with the appropriate CLI arguments to regenerate the image.
+     7. Repeat.
+
+Step 5. Run `generate.py` once again to ensure the final output is generated.
+   - Execute: `python generate.py <your_arguments>`
