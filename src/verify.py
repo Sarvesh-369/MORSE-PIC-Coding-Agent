@@ -23,10 +23,10 @@ class VerificationModule(dspy.Module):
 
 def main():
     parser = argparse.ArgumentParser(description="VLM Verification Agent using dspy")
-    parser.add_argument("reference_image", help="Path to the reference image")
-    parser.add_argument("generated_image", help="Path to the generated image")
-    parser.add_argument("question", help="Question about the image")
-    parser.add_argument("generated_ground_truth", help="The ground truth for the generated image for the given question")
+    parser.add_argument("--reference_image", help="Path to the reference image")
+    parser.add_argument("--generated_image", help="Path to the generated image")
+    parser.add_argument("--question", help="Question about the image")
+    parser.add_argument("--generated_ground_truth", help="The ground truth for the generated image for the given question")
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-VL-8B-Thinking"), help="Model name (default: env OPENAI_MODEL or Qwen/Qwen3-VL-8B-Thinking)")
     parser.add_argument("--api_base", default=os.environ.get("OPENAI_API_BASE", "http://localhost:8000/v1"), help="API base URL (default: env OPENAI_API_BASE or http://localhost:8000/v1)")
     parser.add_argument("--api_key", default=os.environ.get("OPENAI_API_KEY", "EMPTY"), help="API key (default: env OPENAI_API_KEY or EMPTY)")
