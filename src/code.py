@@ -59,7 +59,7 @@ def main():
              sys.exit(1)
 
         # Create dspy Image object
-        img = dspy.Image.from_file(args.image_path)
+        img = dspy.Image(args.image_path)
 
         module = VLMModule()
         response = module(image=img, question=args.question)

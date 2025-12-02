@@ -62,8 +62,8 @@ def main():
              sys.exit(1)
 
         # Create dspy Image objects
-        ref_img = dspy.Image.from_file(args.reference_image)
-        gen_img = dspy.Image.from_file(args.generated_image)
+        ref_img = dspy.Image(args.reference_image)
+        gen_img = dspy.Image(args.generated_image)
 
         module = VerificationModule()
         response = module(reference_image=ref_img, generated_image=gen_img, question=args.question, generated_ground_truth=args.generated_ground_truth)

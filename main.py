@@ -81,10 +81,17 @@ def main():
     image_path = Path(args.images) / image_filename
     
     if not image_path.exists():
-        # Try finding it recursively or with different extensions?
-        # For now, just warn and proceed (or fail).
-        # Let's try to check if it exists.
-        print(f"Warning: Image file {image_path} does not exist.")
+        # Handle case where image_filename includes 'images/' and args.images also ends in 'images'
+        # e.g. args.images='data/images', image_filename='images/1.jpg' -> 'data/images/images/1.jpg'
+        if image_filename.startswith("images/") and str(args.images).rstrip('/').endswith("images"):
+            # Try relative to the parent of args.images
+            alt_path = Path(args.images).parent / image_filename
+            if alt_path.exists():
+                image_path = alt_path
+            else:
+                print(f"Warning: Image file {image_path} does not exist (also tried {alt_path}).")
+        else:
+            print(f"Warning: Image file {image_path} does not exist.")
         # We might fail later in code.py if image doesn't exist.
         
     # Instantiate Orchestrator
