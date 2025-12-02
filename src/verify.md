@@ -9,17 +9,26 @@ Your task is to verify if a generated image and its underlying logic correctly r
 
 ## Verification Steps
 1. **Visual Similarity**: Compare the Generated Image with the Reference Image.
+   - **CRITICAL**: Be extremely nitpicky. Look for ANY differences in:
+     - Exact shape positions and sizes.
+     - Colors (exact shades).
+     - Fonts and label positions.
+     - Axis limits and tick marks.
+     - Data point values.
    - Does the generated image contain the same type of chart, plot, or figure?
    - Are the key elements (shapes, axes, labels, data trends) visually similar?
-   - Note any significant discrepancies in style or content.
 
-2. **Content Accuracy**: Analyze if the Generated Image correctly reflects the Question.
-   - Does the image provide the necessary information to answer the question?
-   - Are the data points or geometric properties consistent with what is implied by the question and reference?
+2. **Content Accuracy & Answer Extraction**: 
+   - Analyze the Generated Image to answer the Question yourself.
+   - **Derived Answer**: Explicitly state the answer you derive solely from the visual information in the generated image.
+   - Does this derived answer match the **Generated Ground Truth**?
 
-3. **Ground Truth Alignment**: Check if the visual information in the Generated Image aligns with the Generated Ground Truth.
+3. **Ground Truth Alignment**: 
    - If the ground truth is a numerical value (e.g., "1.2"), does the generated plot or figure support this value?
    - If the ground truth is a category or description, does the image depict it?
+   - **CRITICAL**: If the Derived Answer does not match the Generated Ground Truth, the status MUST be **FAIL**.
+
+**IMPORTANT**: If there are ANY visible differences that might affect the interpretation or quality, mark status as **FAIL**. Do not default to PASS unless it is a near-perfect replica.
 
 ## Output
 You must output the result in strict JSON format. Do not include any markdown formatting or code blocks (like ```json). Just the raw JSON string.
@@ -30,9 +39,11 @@ JSON Structure:
     "differences": [
         "Detailed description of difference 1",
         "Detailed description of difference 2"
+        .....
     ],
     "suggestions": [
         "Specific suggestion to fix difference 1",
         "Specific suggestion to fix difference 2"
+        .....
     ]
 }

@@ -10,13 +10,14 @@ class VerificationTask(dspy.Signature):
     reference_image: dspy.Image = dspy.InputField(desc="Reference image")
     generated_image: dspy.Image = dspy.InputField(desc="Generated image")
     generated_ground_truth: str = dspy.InputField(desc="The ground truth for the generated image for the given question")
+    derived_answer: str = dspy.OutputField(desc="The answer derived visually from the generated image")
     verification_result: str = dspy.OutputField(desc="The verification result")
 
 # Define Module
 class VerificationModule(dspy.Module):
     def __init__(self):
         super().__init__()
-        self.predictor = dspy.Predict(VerificationTask)
+        self.predictor = dspy.ChainOfThought(VerificationTask)
 
     def forward(self, reference_image, generated_image, question, generated_ground_truth):
         return self.predictor(reference_image=reference_image, generated_image=generated_image, question=question, generated_ground_truth=generated_ground_truth)
@@ -71,6 +72,13 @@ def main():
 
         module = VerificationModule()
         response = module(reference_image=ref_img, generated_image=gen_img, question=args.question, generated_ground_truth=args.generated_ground_truth)
+        
+        # Print rationale and derived answer to stderr for debugging/logging
+        if hasattr(response, 'rationale'):
+            print(f"Rationale: {response.rationale}", file=sys.stderr)
+        if hasattr(response, 'derived_answer'):
+            print(f"Derived Answer: {response.derived_answer}", file=sys.stderr)
+            
         print(response.verification_result)
 
     except Exception as e:
