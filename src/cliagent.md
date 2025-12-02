@@ -8,7 +8,7 @@ This file contains code to generate an image based on a problem description.
 **Instructions:**
 
 Step 1. Activate the virtual environment.
-   - Run: `source .venv/bin/activate` (or appropriate activation command).
+   - Run: `source .venv/bin/activate` (or appropriate activation command it should be located in the root directory of the project).
 
 Step 2. Analyze `generate.py`.
    - Read the content of `generate.py` to understand the global difficulty parameters and the CLI arguments it accepts.
