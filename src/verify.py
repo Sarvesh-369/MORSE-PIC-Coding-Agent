@@ -18,8 +18,8 @@ class VerificationModule(dspy.Module):
         super().__init__()
         self.predictor = dspy.Predict(VerificationTask)
 
-    def forward(self, reference_image, generated_image):
-        return self.predictor(reference_image=reference_image, generated_image=generated_image)
+    def forward(self, reference_image, generated_image, question, generated_ground_truth):
+        return self.predictor(reference_image=reference_image, generated_image=generated_image, question=question, generated_ground_truth=generated_ground_truth)
 
 def main():
     parser = argparse.ArgumentParser(description="VLM Verification Agent using dspy")
