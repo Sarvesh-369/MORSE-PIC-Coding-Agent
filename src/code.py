@@ -33,8 +33,12 @@ def main():
     args = parser.parse_args()
 
     # Configure dspy LM
+    model_name = args.model
+    if not model_name.startswith("openai/") and not model_name.startswith("gpt-"):
+        model_name = "openai/" + model_name
+        
     lm = dspy.LM(
-        model=args.model,
+        model=model_name,
         api_base=args.api_base,
         api_key=args.api_key,
         model_type='chat'

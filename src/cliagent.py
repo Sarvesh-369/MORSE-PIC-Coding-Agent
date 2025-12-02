@@ -129,6 +129,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CLI Coding Agent")
     parser.add_argument("--prompt", help="The prompt md file to send to the agent")
     parser.add_argument("--provider", default="codex", help="The provider to use (default: codex)")
+    parser.add_argument("--model", default="", help="The model name (optional)")
     parser.add_argument("--cwd", default=None, help="The working directory (optional)")
     
     args = parser.parse_args()

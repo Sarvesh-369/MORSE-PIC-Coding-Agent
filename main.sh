@@ -1,3 +1,4 @@
+#!/bin/bash
 # This script is a wrapper for a Python script named 'main.py'.
 # It defines default values for various parameters that the Python script might use.
 # Example usage:
