@@ -10,14 +10,16 @@ class VerificationTask(dspy.Signature):
     reference_image: dspy.Image = dspy.InputField(desc="Reference image")
     generated_image: dspy.Image = dspy.InputField(desc="Generated image")
     generated_ground_truth: str = dspy.InputField(desc="The ground truth for the generated image for the given question")
-    derived_answer: str = dspy.OutputField(desc="The answer derived visually from the generated image")
-    verification_result: str = dspy.OutputField(desc="The verification result")
+    reference_image_description: str = dspy.OutputField(desc="Description of the reference image")
+    generated_image_description: str = dspy.OutputField(desc="Description of the generated image")
+    feedback: str = dspy.OutputField(desc="The generated feedback to make generated image more aligned with the reference image and check if generate ground truth is correct for generated image")
+    verification_result: str = dspy.OutputField(desc="PASS if the generated image matches the reference image for the given question, else FAIL")
 
 # Define Module
 class VerificationModule(dspy.Module):
     def __init__(self):
         super().__init__()
-        self.predictor = dspy.ChainOfThought(VerificationTask)
+        self.predictor = dspy.Predict(VerificationTask)
 
     def forward(self, reference_image, generated_image, question, generated_ground_truth):
         return self.predictor(reference_image=reference_image, generated_image=generated_image, question=question, generated_ground_truth=generated_ground_truth)
@@ -53,6 +55,8 @@ def main():
             system_prompt = f.read().strip()
             # Update the docstring of the signature with the system prompt
             VerificationTask.__doc__ = system_prompt
+            print("System prompt loaded successfully.", file=sys.stderr)
+            print("Sysytem Prompt:", VerificationTask.__doc__, file=sys.stderr)
     except FileNotFoundError:
         print("Error: src/verify.md not found.", file=sys.stderr)
         sys.exit(1)
@@ -72,14 +76,10 @@ def main():
 
         module = VerificationModule()
         response = module(reference_image=ref_img, generated_image=gen_img, question=args.question, generated_ground_truth=args.generated_ground_truth)
-        
-        # Print rationale and derived answer to stderr for debugging/logging
-        if hasattr(response, 'rationale'):
-            print(f"Rationale: {response.rationale}", file=sys.stderr)
-        if hasattr(response, 'derived_answer'):
-            print(f"Derived Answer: {response.derived_answer}", file=sys.stderr)
-            
-        print(response.verification_result)
+        print(f"Reference Image Description:\n {response.reference_image_description}")
+        print(f"Generated Image Description:\n{response.generated_image_description}")
+        print(f"Feedback:\n{response.feedback}")
+        print(f"Verification Result:\n{response.verification_result}")
 
     except Exception as e:
         print(f"Error during verification execution: {e}", file=sys.stderr)

@@ -22,7 +22,7 @@ Step 4. Iterate using the verification script until it passes or you reach the m
    - **Loop**:
      1. Run the verification command:
         ```bash
-        python {verify_script_path} "{reference_image_path}" "{output_dir}/image.png" "{question}" "{generated_ground_truth}"
+        python src/verify.py --reference_image `path` --generated_image `path` --question "" --generated_ground_truth ""
         ```
      2. Analyze the JSON output.
      3. If `"status": "PASS"`, break the loop and proceed to Step 5.
