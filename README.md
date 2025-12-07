@@ -56,6 +56,3 @@ To evaluate the optimized models:
 python run_inference.py
 ```
 The script dynamically loads the appropriate optimized prompt for each test instance based on its context.
-
-## License
-MIT
