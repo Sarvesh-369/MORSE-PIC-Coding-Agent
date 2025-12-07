@@ -6,36 +6,51 @@ Unlike standard inference-time correction methods, this approach utilizes **Trai
 
 ## Algorithm
 
-The framework formulates the code generation task as a context-conditional optimization problem.
+The framework operates in two phases: **Training-Time Optimization** and **Inference**.
 
-### 1. Context Partitioning
-Let $\mathcal{D} = \{(x_i, I_i, c_i)\}_{i=1}^N$ be the dataset, where $x_i$ is the reference image, $I_i$ is the instruction, and $c_i$ is the semantic context (e.g., "geometry"). We partition $\mathcal{D}$ into context-specific subsets:
-$$
-\mathcal{D}_k = \{ (x, I) \mid c = k \}
-$$
+```python
+# Phase 1: Training-Time Optimization (TTO)
+Dataset = LoadData(images, instructions, contexts)
 
-### 2. Code Generation & Execution
-For a given context $k$, we optimize a system prompt $\phi_k$. The policy $\pi_\theta$ (the VLM) generates code $z$ conditioned on the image and instruction:
-$$
-z \sim \pi_\theta(z \mid x, I; \phi_k)
-$$
-The code is executed in a sandbox to produce a candidate image $\hat{x}$:
-$$
-\hat{x} = \text{Exec}(z)
-$$
+# Partition data by context (e.g., geometry, fractals)
+ContextGroups = GroupBy(Dataset, key="context")
 
-### 3. Visual Objective
-We define a visual fidelity score $S$ using a pre-trained visual encoder $E$ (DINOv2):
-$$
-S(x, \hat{x}) = \frac{E(x) \cdot E(\hat{x})}{\|E(x)\| \|E(\hat{x})\|}
-$$
+for context, group_data in ContextGroups:
+    # Initialize System Prompt
+    prompt = InitialPrompt(context)
+    
+    # optimize using GEPA (Generative Evolutionary Prompt Optimization)
+    while not Converged:
+        # 1. Generate candidate prompts via mutation/crossover
+        candidates = Evolve(prompt)
+        
+        # 2. Evaluate candidates
+        scores = []
+        for cand in candidates:
+            # Generate code with candidate prompt
+            code = VLM.generate(cand, group_data.images)
+            
+            # Execute code to get image
+            gen_image = TextToImage(code)
+            
+            # Compute Visual Fidelity (DINOv2)
+            score = CosineSim(Embed(gen_image), Embed(group_data.images))
+            scores.append(score)
+            
+        # 3. Select best prompt for this context
+        prompt = SelectBest(candidates, scores)
+    
+    SaveOptimizedPrompt(context, prompt)
 
-### 4. Optimization (GEPA)
-The objective is to find the optimal prompt $\phi_k^*$ for each context that maximizes the expected visual similarity score:
-$$
-\phi_k^* = \operatorname*{argmax}_{\phi} \mathbb{E}_{(x, I) \sim \mathcal{D}_k} \left[ S(x, \text{Exec}(\pi_\theta(\cdot \mid x, I; \phi))) \right]
-$$
-We solve this using **GEPA** (Generative Evolutionary Prompt Optimization), which iteratively evolves the population of prompts $\{\phi^{(t)}\}$ via mutation and crossover operations guided by the fitness function $S$.
+# Phase 2: Inference
+for test_image, test_context in TestSet:
+    # Load specific prompt for the context
+    prompt = LoadOptimizedPrompt(test_context)
+    
+    # Generate and Execute
+    code = VLM.generate(prompt, test_image)
+    final_image = TextToImage(code)
+```
 
 ## Methodology
 
