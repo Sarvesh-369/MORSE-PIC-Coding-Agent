@@ -91,10 +91,11 @@ def main():
 
                      # Construct example
                      ex = dspy.Example(
-                         image_path=os.path.abspath(img_path),
+                         image=dspy.Image(os.path.abspath(img_path)),
+                         image_path=os.path.abspath(img_path), # Keep path for reference/metrics if needed
                          question=row.get('question', "Recreate this image visually."),
                          context_key=context_text # Store for grouping, not input
-                     ).with_inputs("image_path", "question")
+                     ).with_inputs("image", "question")
                      examples.append(ex)
         except Exception as e:
             print(f"Error loading parquet: {e}")
@@ -105,10 +106,11 @@ def main():
         image_files = glob.glob("data/images/*.png")
         for img_path in image_files:
             ex = dspy.Example(
+                image=dspy.Image(os.path.abspath(img_path)),
                 image_path=os.path.abspath(img_path),
                 question="Write a Python script to recreate this image visually.",
                 context_key="default"
-            ).with_inputs("image_path", "question")
+            ).with_inputs("image", "question")
             examples.append(ex)
             
     if not examples:

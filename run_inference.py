@@ -133,7 +133,9 @@ def main():
             
             # Generate code
             # Note: No 'context' passed as input field, per instruction
-            pred = current_module(image_path=ex.image_path, question=ex.question)
+            # Pass dspy.Image object as per "pass image itself" request
+            img_obj = dspy.Image(ex.image_path)
+            pred = current_module(image=img_obj, question=ex.question)
             
             # Save raw code
             code_path = os.path.join(ex_dir, "generated_code.py")

@@ -15,7 +15,7 @@ class VLMTask(dspy.Signature):
     4. Ensure the code is self-contained and runnable.
     """
     
-    image_path: str = dspy.InputField(desc="Path to the reference image")
+    image: dspy.Image = dspy.InputField(desc="Reference image object")
     question: str = dspy.InputField(desc="Specific instructions or 'Recreate this image visually'")
     rationale: str = dspy.OutputField(desc="Step-by-step reasoning on how to recreate the image")
     code: str = dspy.OutputField(desc="Executable Python code enclosed in markdown code blocks")
@@ -26,17 +26,10 @@ class VLMModule(dspy.Module):
         super().__init__()
         self.prog = dspy.ChainOfThought(VLMTask)
 
-    def forward(self, image_path, question="Recreate this image visually."):
-        # Note: dspy.ChainOfThought with the updated signature needs string inputs primarily.
-        # But dspy.Image behavior might vary.
-        # However, the user specifically asked for:
-        # image_path: dspy.InputField
-        # So we pass the path string. The underlying LLM (like Qwen-VL) needs to handle the image loading
-        # typically via the dspy adapter if it supports image paths in prompt or we might need to load it.
-        # Given "Qwen/Qwen3-VL-8B-Instruct", standard dspy might need a custom client or the image passed as a dspy.Image object.
-        # BUT, the user prompt explicitly said: "image_path: dspy.InputField".
-        # I will follow the user's signature request strictly. 
-        return self.prog(image_path=image_path, question=question)
+    def forward(self, image, question="Recreate this image visually."):
+        # User requested to pass the image object itself.
+        # The input 'image' should already be a dspy.Image object from the caller.
+        return self.prog(image=image, question=question)
 
 def main():
     parser = argparse.ArgumentParser(description="VLM Code Generator using dspy and GEPA")
@@ -72,7 +65,10 @@ def main():
         # Ensure we pass absolute path if possible or just the path provided
         abs_image_path = os.path.abspath(args.image_path)
         
-        response = module(image_path=abs_image_path, question=args.question)
+        # Instantiate dspy.Image object
+        img = dspy.Image(abs_image_path)
+        
+        response = module(image=img, question=args.question)
         
         print("Rationale:", response.rationale)
         print("Code:", response.code)
