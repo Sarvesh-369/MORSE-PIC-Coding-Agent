@@ -1,71 +1,61 @@
-# MORSE-PIC Coding Agent
+# MORSE-PIC: Context-Aware Visual Code Generation via Evolutionary Prompt Optimization
 
-A Vision-Language Model (VLM) agent that generates Python code to visually recreate input images. This repository implements **Training-Time Optimization** using **DSPy** and **GEPA** (Generative Evolutionary Prompt Optimization), guided by a **DINOv2** visual similarity metric.
+This repository contains the implementation for **MORSE-PIC**, a framework for optimizing Vision-Language Models (VLMs) to generate executable Python code that visually reconstructs input images. Unlike standard inference-time correction methods (e.g., self-correction loops), this approach utilizes **Training-Time Optimization (TTO)** via **Generative Evolutionary Prompt Optimization (GEPA)** to refine system prompts and few-shot examples based on a visual similarity metric.
 
-## 🚀 Features
+##  Methodology
 
-- **Visual Fidelity Optimization**: Uses `facebook/dinov3-vits16-pretrain-lvd1689m` (DINOv2 compatible) to score the similarity between the reference image and the generated script's output.
-- **Context-Aware Prompts**: Automatically groups training data by context (e.g., "geometry", "plots") and optimizes specific prompts for each category.
-- **DSPy Integration**: Leverages DSPy's `ChainOfThought` and `teleprompt` modules for robust prompt engineering and selection.
-- **Sandboxed Execution**: Safely executes generated Python code in temporary environments to produce visual outputs for verification.
+The core of our approach is to shift the computational burden from inference-time iteration to offline prompt optimization. The framework consists of three main components:
 
-## 🛠️ Installation
+### 1. Visual Similarity Metric (DINOv2)
+We employ `facebook/dinov3-vits16-pretrain-lvd1689m` as a perceptual metric. Generated scripts are executed in a sandboxed environment to produce an image, which is then embedded and compared to the reference image using cosine similarity. This continuous score serves as the fitness function for the evolutionary optimizer.
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Sarvesh-369/MORSE-PIC-Coding-Agent.git
-   cd MORSE-PIC-Coding-Agent
-   ```
+### 2. Context-Specific Optimization
+To handle diverse visual domains (e.g., geometry, function plots, fractals), we partition the training dataset into distinct contexts ($C_1, C_2, ..., C_n$). We independently optimize a VLM system prompt $\phi_i$ for each context $C_i$ using GEPA. 
 
-2. **Install dependencies**:
-   ```bash
-   pip install dspy-ai gepa transformers torch pillow pandas pyarrow
-   ```
+### 3. Evolutionary Optimization (GEPA)
+We use the **DSPy** library's implementation of GEPA to iteratively evolve instructions and few-shot examples. The optimization objective is to maximize the expected DINOv2 similarity score over the training set for a given context.
 
-3. **Environment Setup**:
-   Set your LLM provider credentials (compatible with OpenAI-style APIs like Qwen-VL):
-   ```bash
-   export OPENAI_API_KEY="your_key"
-   export OPENAI_API_BASE="http://localhost:8000/v1"
-   export OPENAI_MODEL="Qwen/Qwen3-VL-8B-Instruct"
-   ```
+## Repository Structure
 
-## 📊 Data Format
+```
+.
+├── src/
+│   ├── code.py           # VLMTask signature and ChainOfThought module
+│   └── metrics.py        # DINOv2 visual similarity metric & execution sandbox
+├── train_gepa.py         # Main optimization script (GEPA loop)
+├── run_inference.py      # Inference script with context-aware module loading
+└── data/                 # Dataset storage (Parquet format)
+```
 
-The pipeline expects data in **Parquet** format (e.g., `data/testmini.parquet`). 
-Required columns:
-- **`image_path`**: Absolute path to the reference image.
-- **`question`**: (Optional) Textual instruction (e.g., "Draw this circle").
-- **`metadata`**: A JSON string or dictionary containing a **`context`** key. This is used to group examples for specific optimization.
-  - Example: `{"context": "geometry"}`
+## Setup and Usage
 
-## 🖥️ Usage
+### Prerequisites
+The code is built on **DSPy** and requires a GPU-enabled environment for the DINOv2 metric (though it supports CPU execution).
 
-### 1. Training (Prompt Optimization)
-Run the optimization loop to generate refined system prompts for each unique context in your dataset:
+```bash
+pip install dspy-ai gepa transformers torch pillow pandas pyarrow
+```
+
+### Data Format
+The framework expects a Parquet file (`data/testmini.parquet`) containing:
+- `image_path`: Absolute path to the reference image.
+- `metadata`: JSON string containing a `context` key (e.g., `{"context": "geometry"}`) used for clustering.
+
+### Optimization
+To run the evolutionary optimization process for all discovered contexts:
 
 ```bash
 python train_gepa.py
 ```
-**Output**: 
-- Saves optimized DSPy programs as `optimized_vlm_<context_hash>.json`.
-- Creates `context_map.txt` mapping hashes to context names.
+This process yields a set of optimized programs `optimized_vlm_{hash}.json`, effectively "training" the agent for distinct visual tasks.
 
-### 2. Inference & Evaluation
-Run the optimized agent on your dataset to generate code and metrics:
+### Inference & Evaluation
+To evaluate the optimized models:
 
 ```bash
 python run_inference.py
 ```
-**Output**:
-- Creates `runs/<pid>/` directories containing:
-  - `generated_code.py`: The generated Python script.
-  - `metadata.json`: Visual similarity score, rationle, and execution details.
-- Saves an aggregate summary in `runs/inference_summary_<timestamp>.json`.
+The script dynamically loads the appropriate optimized prompt for each test instance based on its context.
 
-## 📂 Structure
-
-- **`src/code.py`**: Core VLMTask signature and Module definition.
-- **`src/metrics.py`**: Visual similarity logic using DINOv2 and execution sandbox.
-- **`train_gepa.py`**: Script for GEPA-based prompt optimization.
-- **`run_inference.py`**: Script for running inference and evaluation.
+## License
+MIT
