@@ -8,49 +8,20 @@ Unlike standard inference-time correction methods, this approach utilizes **Trai
 
 The framework operates in two phases: **Training-Time Optimization** and **Inference**.
 
-```python
-# Phase 1: Training-Time Optimization (TTO)
-Dataset = LoadData(images, instructions, contexts)
+### Phase 1: Training (Optimization)
+1. **Group Data**: Images are organized by context (e.g., "geometry", "fractals").
+2. **Initialize**: A basic system prompt is created for each context.
+3. **Evolve (GEPA Loop)**:
+   - The agent generates code for the training images.
+   - The code is executed to produce an image.
+   - The generated image is compared to the original using **DINOv2**.
+   - The prompt is refined iteratively to maximize this visual similarity score.
+4. **Save**: The best-performing prompt for each context is saved.
 
-# Partition data by context (e.g., geometry, fractals)
-ContextGroups = GroupBy(Dataset, key="context")
-
-for context, group_data in ContextGroups:
-    # Initialize System Prompt
-    prompt = InitialPrompt(context)
-    
-    # optimize using GEPA (Generative Evolutionary Prompt Optimization)
-    while not Converged:
-        # 1. Generate candidate prompts via mutation/crossover
-        candidates = Evolve(prompt)
-        
-        # 2. Evaluate candidates
-        scores = []
-        for cand in candidates:
-            # Generate code with candidate prompt
-            code = VLM.generate(cand, group_data.images)
-            
-            # Execute code to get image
-            gen_image = TextToImage(code)
-            
-            # Compute Visual Fidelity (DINOv2)
-            score = CosineSim(Embed(gen_image), Embed(group_data.images))
-            scores.append(score)
-            
-        # 3. Select best prompt for this context
-        prompt = SelectBest(candidates, scores)
-    
-    SaveOptimizedPrompt(context, prompt)
-
-# Phase 2: Inference
-for test_image, test_context in TestSet:
-    # Load specific prompt for the context
-    prompt = LoadOptimizedPrompt(test_context)
-    
-    # Generate and Execute
-    code = VLM.generate(prompt, test_image)
-    final_image = TextToImage(code)
-```
+### Phase 2: Inference
+1. **Identify Context**: The agent checks the context of the new image.
+2. **Load Prompt**: It loads the specific, optimized prompt for that context.
+3. **Generate**: The agent generates Python code to recreate the image.
 
 ## Methodology
 
