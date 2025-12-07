@@ -1,10 +1,45 @@
 # MORSE-PIC: Context-Aware Visual Code Generation via Evolutionary Prompt Optimization
 
-This repository contains the implementation for **MORSE-PIC**, a framework for optimizing Vision-Language Models (VLMs) to generate executable Python code that visually reconstructs input images. Unlike standard inference-time correction methods (e.g., self-correction loops), this approach utilizes **Training-Time Optimization (TTO)** via **Generative Evolutionary Prompt Optimization (GEPA)** to refine system prompts and few-shot examples based on a visual similarity metric.
+This repository implements **MORSE-PIC**, a framework designed to enable **self-improvement for smaller Vision-Language Models (VLMs)**. By optimizing the code generation process programmatically, the model learns to generate Python scripts that accurately reconstruct visual inputs, effectively "training" itself on its own generated data verification loop.
 
-##  Methodology
+Unlike standard inference-time correction methods, this approach utilizes **Training-Time Optimization (TTO)** via **Generative Evolutionary Prompt Optimization (GEPA)** to refine system prompts and few-shot examples based on a visual similarity metric.
 
-The core of our approach is to shift the computational burden from inference-time iteration to offline prompt optimization. The framework consists of three main components:
+## Algorithm
+
+The framework formulates the code generation task as a context-conditional optimization problem.
+
+### 1. Context Partitioning
+Let $\mathcal{D} = \{(x_i, I_i, c_i)\}_{i=1}^N$ be the dataset, where $x_i$ is the reference image, $I_i$ is the instruction, and $c_i$ is the semantic context (e.g., "geometry"). We partition $\mathcal{D}$ into context-specific subsets:
+$$
+\mathcal{D}_k = \{ (x, I) \mid c = k \}
+$$
+
+### 2. Code Generation & Execution
+For a given context $k$, we optimize a system prompt $\phi_k$. The policy $\pi_\theta$ (the VLM) generates code $z$ conditioned on the image and instruction:
+$$
+z \sim \pi_\theta(z \mid x, I; \phi_k)
+$$
+The code is executed in a sandbox to produce a candidate image $\hat{x}$:
+$$
+\hat{x} = \text{Exec}(z)
+$$
+
+### 3. Visual Objective
+We define a visual fidelity score $S$ using a pre-trained visual encoder $E$ (DINOv2):
+$$
+S(x, \hat{x}) = \frac{E(x) \cdot E(\hat{x})}{\|E(x)\| \|E(\hat{x})\|}
+$$
+
+### 4. Optimization (GEPA)
+The objective is to find the optimal prompt $\phi_k^*$ for each context that maximizes the expected visual similarity score:
+$$
+\phi_k^* = \operatorname*{argmax}_{\phi} \mathbb{E}_{(x, I) \sim \mathcal{D}_k} \left[ S(x, \text{Exec}(\pi_\theta(\cdot \mid x, I; \phi))) \right]
+$$
+We solve this using **GEPA** (Generative Evolutionary Prompt Optimization), which iteratively evolves the population of prompts $\{\phi^{(t)}\}$ via mutation and crossover operations guided by the fitness function $S$.
+
+## Methodology
+
+The core of our approach shifts the computational burden from inference-time iteration to offline prompt optimization.
 
 ### 1. Visual Similarity Metric (DINOv2)
 We employ `facebook/dinov3-vits16-pretrain-lvd1689m` as a perceptual metric. Generated scripts are executed in a sandboxed environment to produce an image, which is then embedded and compared to the reference image using cosine similarity. This continuous score serves as the fitness function for the evolutionary optimizer.
