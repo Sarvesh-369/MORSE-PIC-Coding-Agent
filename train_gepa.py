@@ -89,17 +89,37 @@ def main():
                          
                          context_text = meta_dict.get('context', '') or meta_dict.get('image_context', '')
 
-                     # Construct example
-                     ex = dspy.Example(
-                         image=dspy.Image(os.path.abspath(img_path)),
-                         image_path=os.path.abspath(img_path), # Keep path for reference/metrics if needed
-                         question=row.get('question', "Recreate this image visually."),
-                         context_key=context_text # Store for grouping, not input
-                     ).with_inputs("image", "question")
-                     examples.append(ex)
+                     # Try to find image
+                     full_path = img_path
+                     if not os.path.exists(full_path):
+                         # Try relative to bucket or data dir
+                         candidates = [
+                             os.path.join("data", img_path),
+                             os.path.join("data/images", os.path.basename(img_path))
+                         ]
+                         for c in candidates:
+                             if os.path.exists(c):
+                                 full_path = c
+                                 break
+                     
+                     if os.path.exists(full_path):
+                         # Construct example
+                         ex = dspy.Example(
+                             image=dspy.Image(os.path.abspath(full_path)),
+                             image_path=os.path.abspath(full_path), 
+                             question=row.get('question', "Recreate this image visually."),
+                             context_key=context_text 
+                         ).with_inputs("image", "question")
+                         examples.append(ex)
+                     else:
+                         if len(examples) < 5:
+                             print(f"Warning: Image not found: {img_path}")
+
         except Exception as e:
             print(f"Error loading parquet: {e}")
-            
+            import traceback
+            traceback.print_exc()
+
     # If no examples from parquet, try globbing pngs
     if not examples:
         print("Loading images from data/images/...")
@@ -139,13 +159,27 @@ def main():
         if len(group) < 1:
             continue
             
-        teleprompter = GEPA(
-            metric=visual_similarity_metric,
-            prompt_model=lm_teacher,
-            breadth=5,
-            depth=3,
-            verbose=True
-        )
+        # Use simple BootstrapFewShot or similar if GEPA fails, or try correct args
+        # Search suggested 'reflection_lm'
+        try:
+             teleprompter = GEPA(
+                metric=visual_similarity_metric,
+                teacher=lm_teacher, # Try 'teacher' first, as it is standard in dspy optimizers
+                # prompt_model=lm_teacher, # Caused error
+                breadth=5,
+                depth=3,
+                verbose=True
+            )
+        except TypeError:
+            # Fallback for argument naming mismatch
+            print("Retrying GEPA with 'prompt_model' -> 'reflection_lm'...")
+            teleprompter = GEPA(
+                metric=visual_similarity_metric,
+                reflection_lm=lm_teacher,
+                breadth=5,
+                depth=3,
+                verbose=True
+            )
         
         program = VLMModule()
         

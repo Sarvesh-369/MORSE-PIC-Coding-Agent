@@ -8,6 +8,7 @@ import datetime
 import subprocess 
 import shutil
 import uuid
+import ast
 from tqdm import tqdm
 
 # Add src to path
@@ -61,17 +62,44 @@ def main():
                 # We'll look for common usage
                 for idx, row in df.iterrows():
                     img_path = row.get('image_path') or row.get('image')
-                    # If image path is relative or needs handling
-                    # Assuming local paths for now as per instructions
-                    if img_path: 
-                         # Verify path
-                         if not os.path.isabs(img_path):
-                             img_path = os.path.abspath(img_path)
-                         if os.path.exists(img_path):
+                    if img_path:
+                         # Robust path finding
+                         full_path = img_path
+                         if not os.path.exists(full_path):
+                              candidates = [
+                                   os.path.join("data", img_path),
+                                   os.path.join("data/images", os.path.basename(img_path))
+                              ]
+                              for c in candidates:
+                                   if os.path.exists(c):
+                                        full_path = c
+                                        break
+                         
+                         if os.path.exists(full_path):
+                             context_text = ""
+                             # ... (metadata parsing logic if we want to be consistent, but inference might just use context string if available)
+                             # Extract context logic same as train_gepa
+                             metadata_raw = row.get('metadata', '{}')
+                             if metadata_raw:
+                                 if isinstance(metadata_raw, str):
+                                     try:
+                                         meta_dict = ast.literal_eval(metadata_raw)
+                                     except:
+                                         try:
+                                             meta_dict = json.loads(metadata_raw)
+                                         except:
+                                             meta_dict = {}
+                                 elif isinstance(metadata_raw, dict):
+                                     meta_dict = metadata_raw
+                                 else:
+                                     meta_dict = {}
+                                 context_text = meta_dict.get('context', '') or meta_dict.get('image_context', '')
+                             
                              ex = dspy.Example(
-                                 image_path=img_path,
+                                 image_path=os.path.abspath(full_path),
                                  question=row.get('question', "Write a Python script to recreate this image visually."),
-                                 pid=row.get('pid', str(idx)) # unique id if available
+                                 context=context_text,
+                                 pid=row.get('pid', str(idx))
                              ).with_inputs("image_path", "question")
                              examples.append(ex)
             except Exception as e:
