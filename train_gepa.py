@@ -66,64 +66,70 @@ def main():
             import json
             import ast
             
-            for _, row in df.iterrows():
-                # specific column names depend on dataset, assuming commonly used ones or 'image_path'
-                img_path = row.get('image_path') or row.get('image')
-                if img_path and os.path.exists(img_path):
-                     # Parse metadata for context
-                     metadata_raw = row.get('metadata', '{}')
-                     context_text = ""
-                     if metadata_raw:
-                         if isinstance(metadata_raw, str):
-                             try:
-                                 meta_dict = json.loads(metadata_raw)
-                             except:
-                                 try:
-                                     meta_dict = ast.literal_eval(metadata_raw)
-                                 except:
-                                     meta_dict = {}
-                         elif isinstance(metadata_raw, dict):
-                             meta_dict = metadata_raw
-                         else:
-                             meta_dict = {}
-                         
-                         context_text = meta_dict.get('context', '') or meta_dict.get('image_context', '')
-
-                     # Try to find image
-                     full_path = img_path
-                     if not os.path.exists(full_path):
-                         # Try relative to bucket or data dir
-                         candidates = [
-                             os.path.join("data", img_path),
-                             os.path.join("data/images", os.path.basename(img_path))
-                         ]
-                         for c in candidates:
-                             if os.path.exists(c):
-                                 full_path = c
-                                 break
-                     
-                     if os.path.exists(full_path):
-                         # Construct example
-                         ex = dspy.Example(
-                             image=dspy.Image(os.path.abspath(full_path)),
-                             image_path=os.path.abspath(full_path), 
-                             question=row.get('question', "Recreate this image visually."),
-                             context_key=context_text 
-                         ).with_inputs("image", "question")
-                         examples.append(ex)
-                     else:
-                         if len(examples) < 5:
-                             print(f"Warning: Image not found: {img_path}")
-
         except Exception as e:
-            print(f"Error loading parquet: {e}")
-            import traceback
-            traceback.print_exc()
+             print(f"Error reading parquet file: {e}")
+             import traceback
+             traceback.print_exc()
+             
+        # Iterate rows safely
+        if 'df' in locals():
+             for idx, row in df.iterrows():
+                 try:
+                     # specific column names depend on dataset, assuming commonly used ones or 'image_path'
+                     img_path = row.get('image_path') or row.get('image')
+                     if img_path:
+                         # Parse metadata for context
+                         metadata_raw = row.get('metadata', '{}')
+                         context_text = ""
+                         if metadata_raw:
+                             if isinstance(metadata_raw, str):
+                                 try:
+                                     meta_dict = json.loads(metadata_raw)
+                                 except:
+                                     try:
+                                         meta_dict = ast.literal_eval(metadata_raw)
+                                     except:
+                                         meta_dict = {}
+                             elif isinstance(metadata_raw, dict):
+                                 meta_dict = metadata_raw
+                             else:
+                                 meta_dict = {}
+                             
+                             context_text = meta_dict.get('context', '') or meta_dict.get('image_context', '')
+    
+                         # Try to find image
+                         full_path = img_path
+                         if not os.path.exists(full_path):
+                             # Try relative to bucket or data dir
+                             candidates = [
+                                 os.path.join("data", img_path),
+                                 os.path.join("data/images", os.path.basename(img_path))
+                             ]
+                             for c in candidates:
+                                 if os.path.exists(c):
+                                     full_path = c
+                                     break
+                         
+                         if os.path.exists(full_path):
+                             # Construct example
+                             ex = dspy.Example(
+                                 image=dspy.Image(os.path.abspath(full_path)),
+                                 image_path=os.path.abspath(full_path), 
+                                 question=row.get('question', "Recreate this image visually."),
+                                 context_key=context_text 
+                             ).with_inputs("image", "question")
+                             examples.append(ex)
+                         else:
+                             if len(examples) < 5:
+                                 print(f"Warning: Image not found: {img_path}")
+                 except Exception as ex_load:
+                      # Print error for first few distinct ones?
+                      pass
 
-    # If no examples from parquet, try globbing pngs
+    # If no examples from parquet, try globbing pngs AND jpgs
     if not examples:
         print("Loading images from data/images/...")
-        image_files = glob.glob("data/images/*.png")
+        image_files = glob.glob("data/images/*.png") + glob.glob("data/images/*.jpg")
         for img_path in image_files:
             ex = dspy.Example(
                 image=dspy.Image(os.path.abspath(img_path)),
@@ -160,26 +166,16 @@ def main():
             continue
             
         # Use simple BootstrapFewShot or similar if GEPA fails, or try correct args
-        # Search suggested 'reflection_lm'
         try:
              teleprompter = GEPA(
                 metric=visual_similarity_metric,
-                teacher=lm_teacher, # Try 'teacher' first, as it is standard in dspy optimizers
-                # prompt_model=lm_teacher, # Caused error
-                breadth=5,
-                depth=3,
-                verbose=True
-            )
-        except TypeError:
-            # Fallback for argument naming mismatch
-            print("Retrying GEPA with 'prompt_model' -> 'reflection_lm'...")
-            teleprompter = GEPA(
-                metric=visual_similarity_metric,
                 reflection_lm=lm_teacher,
-                breadth=5,
-                depth=3,
+                max_full_evals=15, # Instead of breadth/depth
                 verbose=True
             )
+        except TypeError as e:
+            print(f"GEPA Init Error: {e}")
+            raise
         
         program = VLMModule()
         
