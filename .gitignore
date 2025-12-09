@@ -1,3 +1,5 @@
 .venv
+.vscode
 data/
 runs/
+src/__pycache__
