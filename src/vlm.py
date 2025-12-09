@@ -37,17 +37,17 @@ def get_vlm_program(model_name: str = None, api_base: str = None, api_key: str =
         model=model_name,
         api_base=api_base,
         api_key=api_key,
-        max_tokens=100000
+        max_tokens=32000
     )
     
     dspy.settings.configure(lm=lm)
     
     program = dspy.ChainOfThought(GenerateResponse)
-    return program
+    return lm, program
 
 if __name__ == "__main__":
     # Example usage
     print("Initializing VLM program...")
-    program = get_vlm_program()
+    lm, program = get_vlm_program()
     print(f"Program created for model: {dspy.settings.lm.model}")
     print(program)
