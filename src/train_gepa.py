@@ -8,7 +8,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from src.code import VLMModule
-from src.metrics import visual_similarity_metric
+from src.geps_metrics import visual_similarity_metric
 
 # Try importing GEPA
 try:
