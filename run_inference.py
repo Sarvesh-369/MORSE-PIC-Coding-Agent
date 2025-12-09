@@ -5,7 +5,7 @@ import json
 import traceback
 from PIL import Image
 from src.build_gepa_dataset import BuildGEPADataset
-from src.vlm import get_vlm_program
+from src.vlm import get_vlm_program, GenerateResponse
 from src.gepa_metrics import GEPAMetrics
 
 def main():
@@ -21,7 +21,7 @@ def main():
     print("Loading compiled program...")
     lm, _ = get_vlm_program() # Need LM configured to run program
     
-    from src.vlm import GenerateResponse
+    
     program = dspy.ChainOfThought(GenerateResponse)
     
     compiled_path = "compiled_program.json"
