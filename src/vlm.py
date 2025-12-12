@@ -45,6 +45,8 @@ def get_vlm_program(model_name: str = None, api_base: str = None, api_key: str =
     program = dspy.ChainOfThought(GenerateResponse)
     return lm, program
 
+
+if __name__ == "__main__":
     # Example usage
     print("Initializing VLM program...")
     lm, program = get_vlm_program()
