@@ -24,6 +24,14 @@ class BuildGEPADataset:
         data = []
         for _, row in df.iterrows():
             row_dict = row.to_dict()
+            # Ensure image path is correct relative to root if it starts with 'images/'
+            if 'image' in row_dict and isinstance(row_dict['image'], str):
+                if row_dict['image'].startswith('images/') and not row_dict['image'].startswith('data/'):
+                    row_dict['image'] = os.path.join(self.output_dir, row_dict['image'].split('images/', 1)[1])
+                elif row_dict['image'].startswith('images/') and not os.path.exists(row_dict['image']):
+                     # Fallback if output_dir is different or path structure differs
+                     row_dict['image'] = os.path.join("data", "images", os.path.basename(row_dict['image']))
+
             # Create dspy Example
             example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image', 'decoded_image')
             data.append(example)
@@ -61,6 +69,13 @@ class BuildGEPADataset:
                 if context not in context_groups:
                     context_groups[context] = []
                 
+                # Ensure image path is correct
+                if 'image' in row_dict and isinstance(row_dict['image'], str):
+                     if row_dict['image'].startswith('images/') and not row_dict['image'].startswith('data/'):
+                        row_dict['image'] = os.path.join(self.output_dir, row_dict['image'].split('images/', 1)[1])
+                     elif row_dict['image'].startswith('images/') and not os.path.exists(row_dict['image']):
+                         row_dict['image'] = os.path.join("data", "images", os.path.basename(row_dict['image']))
+
                 example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image', 'decoded_image')
                 context_groups[context].append(example)
         
