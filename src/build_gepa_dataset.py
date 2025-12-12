@@ -6,7 +6,7 @@ import json
 import pickle
 
 class BuildGEPADataset:
-    def __init__(self, max_train_per_context: int = 50, max_val_per_context: int = 20, context_to_exclude: list[str] = ["natural image", "medical image", "synthetic scene"], output_dir="data", save_dataset=False, random_seed: int = 42):
+    def __init__(self, max_train_per_context: int = 5, max_val_per_context: int = 20, context_to_exclude: list[str] = ["natural image", "medical image", "synthetic scene"], output_dir="data", save_dataset=False, random_seed: int = 42):
         self.max_train_per_context = max_train_per_context
         self.max_val_per_context = max_val_per_context
         self.context_to_exclude = context_to_exclude
