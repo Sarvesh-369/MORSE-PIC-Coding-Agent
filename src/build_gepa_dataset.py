@@ -31,6 +31,10 @@ class BuildGEPADataset:
                 elif row_dict['image'].startswith('images/') and not os.path.exists(row_dict['image']):
                      # Fallback if output_dir is different or path structure differs
                      row_dict['image'] = os.path.join("data", row_dict['image'])
+                     
+                # Wrap with dspy.Image
+                row_dict['image'] = dspy.Image(row_dict['image'])
+                row_dict['decoded_image'] = dspy.Image(row_dict['decoded_image'])
 
             # Create dspy Example
             example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image', 'decoded_image')
@@ -75,6 +79,9 @@ class BuildGEPADataset:
                         row_dict['image'] = os.path.join(self.output_dir, row_dict['image'])
                      elif row_dict['image'].startswith('images/') and not os.path.exists(row_dict['image']):
                          row_dict['image'] = os.path.join("data", row_dict['image'])
+                         
+                     # Wrap with dspy.Image
+                     row_dict['image'] = dspy.Image(row_dict['image'])
 
                 example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image', 'decoded_image')
                 context_groups[context].append(example)
