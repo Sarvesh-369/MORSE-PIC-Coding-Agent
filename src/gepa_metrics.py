@@ -106,6 +106,7 @@ class GEPAMetrics:
              return dspy.Prediction(score=0, feedback="Code executed but no PIL Image object was found in the variables.")
         
         similarity, msg = self.compute_similarity(example.image, generated_image)
+        print("Similarity score:", similarity)
             
         score = 1 if similarity >= self.similarity_threshold else 0
         
