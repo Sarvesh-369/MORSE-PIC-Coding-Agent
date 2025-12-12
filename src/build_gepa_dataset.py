@@ -34,10 +34,9 @@ class BuildGEPADataset:
                      
                 # Wrap with dspy.Image
                 row_dict['image'] = dspy.Image(row_dict['image'])
-                row_dict['decoded_image'] = dspy.Image(row_dict['decoded_image'])
 
             # Create dspy Example
-            example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image', 'decoded_image')
+            example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image')
             data.append(example)
         return data
 
@@ -83,7 +82,7 @@ class BuildGEPADataset:
                      # Wrap with dspy.Image
                      row_dict['image'] = dspy.Image(row_dict['image'])
 
-                example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image', 'decoded_image')
+                example = dspy.Example(**row_dict).with_inputs('question', 'choices', 'image')
                 context_groups[context].append(example)
         
         train_set = []
