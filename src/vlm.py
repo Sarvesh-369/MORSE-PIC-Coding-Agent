@@ -50,7 +50,7 @@ def get_vlm_program(model_name: str = None, api_base: str = None, api_key: str =
     lm, program = get_vlm_program()
     print(f"Program created for model: {dspy.settings.lm.model}")
 
-    image_path = "data/images/1.jpg"
+    image_path = "../data/images/1.jpg"
     question = "What is depicted in this image?"
     choices = ["A: A cat", "B: A dog", "C: A car", "D: A house", "E: 2D image"]
 
