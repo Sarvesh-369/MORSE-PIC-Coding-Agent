@@ -59,5 +59,7 @@ if __name__ == "__main__":
     print(f"\nRunning program with image: {image_path}, question: '{question}', choices: {choices}")
     prediction = program(image=dspy.Image(image_path), question=question, choices=choices)
 
+    print("\nReasoning:")
+    print(prediction.reasoning)
     print("\nGenerated Program:")
     print(prediction.program)
