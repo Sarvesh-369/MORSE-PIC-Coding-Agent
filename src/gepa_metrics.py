@@ -9,7 +9,7 @@ from transformers import AutoImageProcessor, AutoModel
 from transformers.image_utils import load_image
 
 class GEPAMetrics:
-    def __init__(self, vision_encoder_model: str = "facebook/dinov3-vits16-pretrain-lvd1689m", similarity_threshold: float = 0.8):
+    def __init__(self, vision_encoder_model: str = "facebook/dinov3-vits16-pretrain-lvd1689m", similarity_threshold: float = 0.6):
         self.vision_encoder_model = vision_encoder_model
         self.similarity_threshold = similarity_threshold
         
