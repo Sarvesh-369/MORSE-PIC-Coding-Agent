@@ -3,8 +3,9 @@ import dspy
 import torch
 import numpy as np
 from PIL import Image
-import io
 import os
+import subprocess
+import sys
 import traceback
 from transformers import AutoImageProcessor, AutoModel
 from transformers.image_utils import load_image
@@ -26,6 +27,14 @@ class GEPAMetrics:
         # but inputs need to be on model.device.
             
     def _get_embedding(self, image):
+        # Convert common wrappers to str path/URL if needed (e.g., dspy.Image)
+        if not isinstance(image, (str, Image.Image)):
+            for attr in ("path", "filepath", "file_path", "url"):
+                value = getattr(image, attr, None)
+                if isinstance(value, str) and value:
+                    image = value
+                    break
+
         # Convert str path or URL to image if needed
         if isinstance(image, str):
             try:
@@ -66,6 +75,67 @@ class GEPAMetrics:
         similarity = np.dot(emb1, emb2) / (norm1 * norm2)
         return float(similarity), "Success"
 
+    def _write_generate_scripts(self, run_dir: str, code: str) -> str:
+        os.makedirs(run_dir, exist_ok=True)
+
+        raw_path = os.path.join(run_dir, "generate_raw.py")
+        with open(raw_path, "w", encoding="utf-8") as f:
+            f.write(code.rstrip() + "\n")
+
+        generate_path = os.path.join(run_dir, "generate.py")
+        footer = f"""
+        # --- auto-save footer (added by GEPAMetrics) ---
+        def _auto_save_image():
+            import os
+            out_path = os.path.join(os.path.dirname(__file__), "image.png")
+            if os.path.exists(out_path):
+                return out_path
+
+            from PIL import Image
+            g = globals()
+
+            candidate = None
+            for name in ("image", "img"):
+                v = g.get(name)
+                if isinstance(v, Image.Image):
+                    candidate = v
+                    break
+
+            if candidate is None:
+                for v in reversed(list(g.values())):
+                    if isinstance(v, Image.Image):
+                        candidate = v
+                        break
+
+            if candidate is None:
+                raise RuntimeError("No PIL.Image found to save; set global `image`/`img` or save `image.png` yourself.")
+
+            candidate.save(out_path)
+            return out_path
+
+        if __name__ == "__main__":
+            print(_auto_save_image())
+        """
+
+        with open(generate_path, "w", encoding="utf-8") as f:
+            f.write(code.rstrip() + "\n" + footer.lstrip())
+
+        return generate_path
+
+    def _run_generate_script(self, run_dir: str, timeout_s: int = 60):
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        env = os.environ.copy()
+        env["PYTHONPATH"] = repo_root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        result = subprocess.run(
+            [sys.executable, "generate.py"],
+            cwd=run_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            env=env,
+        )
+        return result
+
     def metric(self, example, prediction, trace=None, pred_name=None, pred_trace=None):
         program_code = getattr(prediction, 'program', '')
         
@@ -81,45 +151,49 @@ class GEPAMetrics:
         if not code:
             return dspy.Prediction(score=0, feedback="No code found in the prediction.")
 
-        # Execute code
-        local_scope = {}
-        
-        try:
-            exec(code, {}, local_scope)
-        except Exception as e:
-            return dspy.Prediction(score=0, feedback=f"Error executing code: {str(e)}\nTraceback: {traceback.format_exc()}")
-        
-        # Find image in local_scope
-        generated_image = None
-        # Priority to 'image' or 'img' variables
-        if 'image' in local_scope and isinstance(local_scope['image'], Image.Image):
-            generated_image = local_scope['image']
-        elif 'img' in local_scope and isinstance(local_scope['img'], Image.Image):
-            generated_image = local_scope['img']
-        else:
-            # excessive search
-            for val in reversed(list(local_scope.values())):
-                if isinstance(val, Image.Image):
-                    generated_image = val
-                    break
-        
-        if not generated_image:
-             return dspy.Prediction(score=0, feedback="Code executed but no PIL Image object was found in the variables.")
-        
-        # Save artifacts
+        # Save artifacts (generate.py first), then execute it to produce image.png
         pid = getattr(example, 'pid', 'unknown')
         run_dir = os.path.join("runs", str(pid))
         os.makedirs(run_dir, exist_ok=True)
-        
-        try:
-            with open(os.path.join(run_dir, "generate.py"), "w") as f:
-                f.write(code)
-            
-            generated_image.save(os.path.join(run_dir, "image.png"))
-        except Exception as e:
-            print(f"Failed to save artifacts for pid {pid}: {e}")
 
-        similarity, msg = self.compute_similarity(example.image, generated_image)
+        try:
+            self._write_generate_scripts(run_dir, code)
+        except Exception as e:
+            return dspy.Prediction(score=0, feedback=f"Failed to write generate.py: {e}\nTraceback: {traceback.format_exc()}")
+
+        try:
+            exec_result = self._run_generate_script(run_dir)
+        except subprocess.TimeoutExpired as e:
+            return dspy.Prediction(
+                score=0,
+                feedback=f"generate.py timed out after {e.timeout}s.",
+            )
+        except Exception as e:
+            return dspy.Prediction(score=0, feedback=f"Failed to run generate.py: {e}\nTraceback: {traceback.format_exc()}")
+
+        if exec_result.returncode != 0:
+            return dspy.Prediction(
+                score=0,
+                feedback=(
+                    "generate.py failed.\n"
+                    f"Return code: {exec_result.returncode}\n"
+                    f"STDOUT:\n{exec_result.stdout}\n"
+                    f"STDERR:\n{exec_result.stderr}"
+                ),
+            )
+
+        generated_image_path = os.path.join(run_dir, "image.png")
+        if not os.path.exists(generated_image_path):
+            return dspy.Prediction(
+                score=0,
+                feedback=(
+                    "generate.py ran but did not produce runs/<pid>/image.png.\n"
+                    f"STDOUT:\n{exec_result.stdout}\n"
+                    f"STDERR:\n{exec_result.stderr}"
+                ),
+            )
+
+        similarity, msg = self.compute_similarity(example.image, generated_image_path)
         print(f"PID: {pid} | Similarity score: {similarity}")
             
         score = 1 if similarity >= self.similarity_threshold else 0
