@@ -30,7 +30,7 @@ def main():
     
     optimizer = GEPA(
         metric=metrics_obj.metric,
-        auto="light",
+        auto="heavy",
         num_threads=32,
         track_stats=True,
         reflection_minibatch_size=3,
