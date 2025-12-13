@@ -57,7 +57,13 @@ def main():
     
     # The metric expects an 'example' with the ground truth image
     # For this test, the ground truth is the input image itself (since we want to recreate it)
-    example = dspy.Example(image=image_path) 
+    example = dspy.Example(
+        pid="1",
+        image=dspy_image,
+        question=question,
+        choices=choices,
+        answer=1.2,
+    )
     
     try:
         result = metrics.metric(example, prediction)
