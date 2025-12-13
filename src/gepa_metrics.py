@@ -75,6 +75,32 @@ class GEPAMetrics:
         similarity = np.dot(emb1, emb2) / (norm1 * norm2)
         return float(similarity), "Success"
 
+    def _extract_pid(self, example, default: str = "unknown") -> str:
+        if example is None:
+            return default
+
+        for key in ("pid", "id", "example_id"):
+            if hasattr(example, "get"):
+                try:
+                    value = example.get(key)
+                except Exception:
+                    value = None
+                if value not in (None, ""):
+                    return str(value)
+
+            value = getattr(example, key, None)
+            if value not in (None, ""):
+                return str(value)
+
+        store = getattr(example, "_store", None)
+        if isinstance(store, dict):
+            for key in ("pid", "id", "example_id"):
+                value = store.get(key)
+                if value not in (None, ""):
+                    return str(value)
+
+        return default
+
     def _write_generate_scripts(self, run_dir: str, code: str) -> str:
         os.makedirs(run_dir, exist_ok=True)
 
@@ -83,42 +109,8 @@ class GEPAMetrics:
             f.write(code.rstrip() + "\n")
 
         generate_path = os.path.join(run_dir, "generate.py")
-        footer = f"""
-        # --- auto-save footer (added by GEPAMetrics) ---
-        def _auto_save_image():
-            import os
-            out_path = os.path.join(os.path.dirname(__file__), "image.png")
-            if os.path.exists(out_path):
-                return out_path
-
-            from PIL import Image
-            g = globals()
-
-            candidate = None
-            for name in ("image", "img"):
-                v = g.get(name)
-                if isinstance(v, Image.Image):
-                    candidate = v
-                    break
-
-            if candidate is None:
-                for v in reversed(list(g.values())):
-                    if isinstance(v, Image.Image):
-                        candidate = v
-                        break
-
-            if candidate is None:
-                raise RuntimeError("No PIL.Image found to save; set global `image`/`img` or save `image.png` yourself.")
-
-            candidate.save(out_path)
-            return out_path
-
-        if __name__ == "__main__":
-            print(_auto_save_image())
-        """
-
         with open(generate_path, "w", encoding="utf-8") as f:
-            f.write(code.rstrip() + "\n" + footer.lstrip())
+            f.write(code.rstrip() + "\n")
 
         return generate_path
 
@@ -152,7 +144,7 @@ class GEPAMetrics:
             return dspy.Prediction(score=0, feedback="No code found in the prediction.")
 
         # Save artifacts (generate.py first), then execute it to produce image.png
-        pid = getattr(example, 'pid', 'unknown')
+        pid = self._extract_pid(example, default="unknown")
         run_dir = os.path.join("runs", str(pid))
         os.makedirs(run_dir, exist_ok=True)
 
@@ -188,6 +180,7 @@ class GEPAMetrics:
                 score=0,
                 feedback=(
                     "generate.py ran but did not produce runs/<pid>/image.png.\n"
+                    "Make sure your code saves the output image as image.png in the current working directory.\n"
                     f"STDOUT:\n{exec_result.stdout}\n"
                     f"STDERR:\n{exec_result.stderr}"
                 ),
