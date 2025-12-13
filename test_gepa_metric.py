@@ -12,7 +12,7 @@ def main():
     # 2. Initialize Metrics
     print("Initializing GEPA Metrics...")
     # This might take time to load the vision encoder
-    metrics = GEPAMetrics(similarity_threshold=0.6) 
+    metrics = GEPAMetrics(similarity_threshold=0.8) 
 
     # 3. Define Test Input
     # Using a known image from data/images if available
