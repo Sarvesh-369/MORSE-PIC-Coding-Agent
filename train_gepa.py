@@ -34,7 +34,8 @@ def main():
         num_threads=32,
         track_stats=True,
         reflection_minibatch_size=3,
-        reflection_lm=reflection_lm
+        reflection_lm=reflection_lm,
+        log_dir="./gepa_logs"
     )
 
     # 5. Optimization
