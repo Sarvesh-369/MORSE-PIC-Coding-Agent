@@ -189,7 +189,7 @@ class GEPAMetrics:
             return dspy.Prediction(score=0, feedback="No code found in the prediction.")
 
         # Save artifacts (generate.py first), then execute it to produce image.png
-        print(f"Example contents: {self._describe_example(example)}")
+        # print(f"Example contents: {self._describe_example(example)}")
         pid = self._extract_pid(example, default="unknown")
         run_dir = os.path.join("runs", str(pid))
         os.makedirs(run_dir, exist_ok=True)
