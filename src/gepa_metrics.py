@@ -11,7 +11,7 @@ from transformers import AutoImageProcessor, AutoModel
 from transformers.image_utils import load_image
 
 class GEPAMetrics:
-    def __init__(self, vision_encoder_model: str = "facebook/dinov3-vits16-pretrain-lvd1689m", similarity_threshold: float = 0.6):
+    def __init__(self, vision_encoder_model: str = "facebook/dinov3-vits16-pretrain-lvd1689m", similarity_threshold: float = 0.8):
         self.vision_encoder_model = vision_encoder_model
         self.similarity_threshold = similarity_threshold
         
@@ -24,7 +24,7 @@ class GEPAMetrics:
             attn_implementation="sdpa"
         )
         # Note: device_map="auto" handles device placement, so explicit .to(device) might be redundant 
-        # but inputs need to be on model.device.
+        # but inputs need to be on model.device.            
             
     def _get_embedding(self, image):
         # Convert common wrappers to str path/URL if needed (e.g., dspy.Image)
@@ -101,12 +101,57 @@ class GEPAMetrics:
 
         return default
 
+    def _describe_example(self, example) -> str:
+        if example is None:
+            return "None"
+
+        store = None
+        if hasattr(example, "toDict"):
+            try:
+                store = example.toDict()
+            except Exception:
+                store = None
+        if store is None:
+            store = getattr(example, "_store", None)
+        if store is None and hasattr(example, "get"):
+            store = {}
+            for key in ("pid", "id", "example_id", "question", "choices", "answer", "image"):
+                try:
+                    if example.get(key) is not None:
+                        store[key] = example.get(key)
+                except Exception:
+                    pass
+        if not isinstance(store, dict):
+            try:
+                return repr(example)
+            except Exception:
+                return f"<{type(example).__name__}>"
+
+        def format_value(value):
+            if isinstance(value, str):
+                return value
+            for attr in ("path", "filepath", "file_path", "url"):
+                v = getattr(value, attr, None)
+                if isinstance(v, str) and v:
+                    return v
+            try:
+                return repr(value)
+            except Exception:
+                return f"<{type(value).__name__}>"
+
+        items = []
+        for key in sorted(store.keys()):
+            if key == "image":
+                items.append(f"{key}={format_value(store[key])}")
+            else:
+                items.append(f"{key}={format_value(store[key])}")
+        text = ", ".join(items)
+        if len(text) > 2000:
+            text = text[:2000] + "...(truncated)"
+        return text
+
     def _write_generate_scripts(self, run_dir: str, code: str) -> str:
         os.makedirs(run_dir, exist_ok=True)
-
-        raw_path = os.path.join(run_dir, "generate_raw.py")
-        with open(raw_path, "w", encoding="utf-8") as f:
-            f.write(code.rstrip() + "\n")
 
         generate_path = os.path.join(run_dir, "generate.py")
         with open(generate_path, "w", encoding="utf-8") as f:
@@ -144,6 +189,7 @@ class GEPAMetrics:
             return dspy.Prediction(score=0, feedback="No code found in the prediction.")
 
         # Save artifacts (generate.py first), then execute it to produce image.png
+        print(f"Example contents: {self._describe_example(example)}")
         pid = self._extract_pid(example, default="unknown")
         run_dir = os.path.join("runs", str(pid))
         os.makedirs(run_dir, exist_ok=True)
