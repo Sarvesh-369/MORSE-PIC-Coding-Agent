@@ -2,7 +2,7 @@ import dspy
 import os
 
 class GenerateResponse(dspy.Signature):
-    """Generate a python program to recreate the given image based on the question and choices. Use any libraries you need that can recreate the image to the best of your ability."""
+    """Generate a python program to recreate the given image based on the question and choices. Use any libraries you need that can recreate the image to the best of your ability. Make sure you save the image in the same directory as the program. Save the image as 'image.png'"""
     image: dspy.Image = dspy.InputField(desc="The Input Image to Analyze and recreate")
     question = dspy.InputField(desc="The question to answer")
     choices = dspy.InputField(desc="The multiple choice options")

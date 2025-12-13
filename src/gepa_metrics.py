@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from PIL import Image
 import io
+import os
 import traceback
 from transformers import AutoImageProcessor, AutoModel
 from transformers.image_utils import load_image
@@ -105,8 +106,21 @@ class GEPAMetrics:
         if not generated_image:
              return dspy.Prediction(score=0, feedback="Code executed but no PIL Image object was found in the variables.")
         
+        # Save artifacts
+        pid = getattr(example, 'pid', 'unknown')
+        run_dir = os.path.join("runs", str(pid))
+        os.makedirs(run_dir, exist_ok=True)
+        
+        try:
+            with open(os.path.join(run_dir, "generate.py"), "w") as f:
+                f.write(code)
+            
+            generated_image.save(os.path.join(run_dir, "image.png"))
+        except Exception as e:
+            print(f"Failed to save artifacts for pid {pid}: {e}")
+
         similarity, msg = self.compute_similarity(example.image, generated_image)
-        print("Similarity score:", similarity)
+        print(f"PID: {pid} | Similarity score: {similarity}")
             
         score = 1 if similarity >= self.similarity_threshold else 0
         
